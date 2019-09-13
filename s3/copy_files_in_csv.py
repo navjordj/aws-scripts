@@ -1,27 +1,33 @@
-from helper_function import iterate_bucket_items
-from variables import *
-
+import sys
 import csv
 
 import boto3
 from tqdm import tqdm
 
-FILE = 'data/files.csv'
+def iterate_bucket_items(client, bucket):
+    paginator = client.get_paginator('list_objects_v2')
+    page_iterator = paginator.paginate(Bucket=bucket)
 
-files = open(FILE)
+    for page in page_iterator:
+        if page['KeyCount'] > 0:
+            for item in page['Contents']:
+                yield item
 
-files = csv.reader(files)
-files_list = []
-for row in files:
-    files_list.append(row[0])
+if __name__ == "__main__":
+    BUCKET_FROM = sys.argv[1]
+    BUCKET_TO = sys.argv[2]
+    CSV_FILE = sys.argv[3] 
 
-s3 = boto3.client('s3')
+    with open(CSV_FILE) as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=',')
+        files = [row[0] for row in csv_reader]
 
-length = len(s3.list_objects(Bucket=bucket1)["Contents"])
-print(length)
+    s3 = boto3.client('s3')
 
-dest = boto3.resource('s3').Bucket(bucket2)
+    length = len(s3.list_objects(Bucket=BUCKET_FROM)["Contents"])
 
-for item in tqdm(iterate_bucket_items(s3, bucket1), total=length):
-    if item["Key"] in files_list:
-        dest.copy({'Bucket': bucket1, 'Key': item["Key"]}, item["Key"])
+    dest = boto3.resource('s3').Bucket(BUCKET_TO)
+
+    for item in tqdm(iterate_bucket_items(s3, BUCKET_FROM), total=length):
+        if item["Key"] in files:
+            dest.copy({'Bucket': BUCKET_FROM, 'Key': item["Key"]}, item["Key"])
