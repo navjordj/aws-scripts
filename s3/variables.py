@@ -1,6 +1,6 @@
 import os 
 
-bucket1 = os.environ['BUCKET']
+bucket1 = os.environ['BUCKET1']
 bucket2 = os.environ['BUCKET2']
 
 if __name__ == "__main__":
